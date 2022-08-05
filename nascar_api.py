@@ -24,7 +24,6 @@ def get_drivers() -> pd.DataFrame:
     driver_df = pd.json_normalize(driver_data).set_index("position").sort_index()
     return driver_df
 
-
 def get_manufacturer_data() -> pd.DataFrame:
 
     """
@@ -52,11 +51,14 @@ def get_manufacturer_data() -> pd.DataFrame:
 
     return df
 
-
 def get_manufacture_by_name(manu_name: str):
 
     """
     Get data about a specific manufacturer using the name of the manufacturer
+
+    Keyword arguments:
+
+    manu_name -- Manufacturer name requested
     """
 
     manu_df = get_manufacturer_data()
@@ -66,13 +68,14 @@ def get_manufacture_by_name(manu_name: str):
 
     return manu_df.loc[manu_df["manufacturer"] == manu_name]
 
-
 def get_manufacturer_by_pos(pos: int) -> str:
 
     """
     Get data about a specific manufacturer using the position of the manufacturer.
 
-    :param pos: Parameter for which manufacturer standings position you would like to see
+    Keyword arguments:
+
+    pos -- Position requested in the manufacturer standings
     """
 
     if pos > 3: # check if the integer is valid. If it is over 3 it is not valid because there are only 3 manufacturers in NASCAR
@@ -84,12 +87,14 @@ def get_manufacturer_by_pos(pos: int) -> str:
 
     return manu_df.loc[pos].to_string()
 
-def get_race(race_id):
+def get_race(race_id) -> list:
 
     """
     Get specific race data using race_id
 
-    :param race_id: Parameter for which race you would like data for
+    Keyword arguments:
+
+    race_id -- race id for the race requested
     """
 
     race_results_url = f"https://cf.nascar.com/cacher/2022/1/{race_id}/weekend-feed.json"
@@ -99,8 +104,6 @@ def get_race(race_id):
     race_json = requests.request("GET", race_results_url)
 
     race_data = race_json.json()
-
-    race_results_len = len(race_data["weekend_race"][0]["results"])
 
     race_date = race_data["weekend_race"][0]["race_date"]
     race_date = re.sub('T[0-9]*\:[0-9]*\:[0-9]*', '', race_date)
@@ -116,15 +119,15 @@ def get_race(race_id):
 
     return [race_df, race_results]
 
-
-def get_race_results(race_url):
+def get_race_results(race_url:str) -> pd.DataFrame:
 
     """
     Helper function for get_race().
 
     Gets race results for specified race.
 
-    :param race_url: Take race_url that is created from parent function get_race()
+    Keyword arguments
+    race_url -- URL for the requested race results
     """
 
     race_json = requests.request("GET", race_url)
@@ -142,3 +145,28 @@ def get_race_results(race_url):
     race_results_df = pd.DataFrame(data=race_results_dict)
     return race_results_df
 
+def get_driver_standing_position(driver_name: str) -> str:
+    """
+    Get specific drivers position in the points standings along with relevant information (amount of wins, points, points behind leader, etc.)
+
+    Keyword arguments:
+    driver_name -- the name of a driver
+
+    Returns:
+    list [raw_data, string_formatted data]
+    """
+
+    ds_json = requests.request("GET", drivers_points_url)
+
+    ds_data = ds_json.json()
+
+    for driver in ds_data:
+        if driver["driver_name"] == driver_name:
+            info_string = f"""Driver Name: {driver['driver_name']} | Regular Season Position: {driver['position']} | Playoff Position: {driver['playoff_rank']} | /
+            Regular Season Points: {driver['points']} | Playoff Points: {driver['playoff_points']} | Stage Points: {driver['stage_points']} | Top 5s: {driver['top_5']} | 
+            Laps Led: {driver['laps_led']} | DNFs: {driver['dnf']} | Delta to Next Position: {driver['delta_next']} | Delta to Leader: {driver['delta_leader']} | Delta to Playoff Leader: {driver['delta_leader_playoff']} | 
+            Driver ID: {driver['driver_id']} | Manufacturer: {driver['manufacturer']} | Clinched Playoff Berth: {driver['is_clinch']}"""
+
+            return info_string
+    else:
+        raise KeyError("Driver does not exist.")
